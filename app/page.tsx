@@ -20,12 +20,13 @@ function classify(w:string):WordType{const l=w.toLowerCase();if(brands.some(b=>l
 function compact(n:number){return n>=10000?`${(n/10000).toFixed(1)}万`:Math.round(n).toLocaleString('zh-CN')}
 function pct(n:number){return`${n.toFixed(1)}%`}
 function weekKey(r:Row){return`${r.year}-W${String(r.week).padStart(2,'0')}`}
+function latestPeriod(rows:Row[]){return rows.reduce((max,r)=>Math.max(max,r.year*100+r.week),0)}
 function saveRows(rows:Row[]){return new Promise<void>((resolve,reject)=>{const q=indexedDB.open('keyword-bi',1);q.onupgradeneeded=()=>q.result.createObjectStore('data');q.onsuccess=()=>{const t=q.result.transaction('data','readwrite');t.objectStore('data').put(rows,'rows');t.oncomplete=()=>resolve();t.onerror=()=>reject(t.error)};q.onerror=()=>reject(q.error)})}
 function loadRows(){return new Promise<Row[]|null>(resolve=>{const q=indexedDB.open('keyword-bi',1);q.onupgradeneeded=()=>q.result.createObjectStore('data');q.onsuccess=()=>{const g=q.result.transaction('data').objectStore('data').get('rows');g.onsuccess=()=>resolve(g.result??null);g.onerror=()=>resolve(null)};q.onerror=()=>resolve(null)})}
 
 export default function Home(){
  const[rows,setRows]=useState<Row[]>(seedRows as Row[]),[page,setPage]=useState(0),[category,setCategory]=useState('全部类目'),[wordType,setWordType]=useState('全部词型'),[windowSize,setWindowSize]=useState(4),[notice,setNotice]=useState('');const fileRef=useRef<HTMLInputElement>(null);
- useEffect(()=>{loadRows().then(s=>s?.length&&setRows(s))},[]);
+ useEffect(()=>{loadRows().then(s=>{if(s?.length&&latestPeriod(s)>=latestPeriod(seedRows as Row[]))setRows(s)})},[]);
  const weeks=useMemo(()=>[...new Map(rows.map(r=>[weekKey(r),{key:weekKey(r),year:r.year,week:r.week,date:r.date}])).values()].sort((a,b)=>a.key.localeCompare(b.key)),[rows]);
  const activeWeeks=weeks.slice(Math.max(0,weeks.length-windowSize)), activeKeys=new Set(activeWeeks.map(w=>w.key));
  const categories=useMemo(()=>[...new Set(rows.map(r=>r.category))].sort(),[rows]);
