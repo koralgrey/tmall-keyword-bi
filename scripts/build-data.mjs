@@ -7,8 +7,9 @@ const target = process.argv[3] ?? "app/data.json";
 if (!source) throw new Error("Excel source path is required");
 
 const workbook = XLSX.readFile(source, { cellDates: false });
-const sheet = workbook.Sheets["源数据"];
-if (!sheet) throw new Error("未找到“源数据”工作表");
+const sheetName = workbook.Sheets["数据源"] ? "数据源" : "源数据";
+const sheet = workbook.Sheets[sheetName];
+if (!sheet) throw new Error("未找到“数据源”或“源数据”工作表");
 const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
 const cleaned = rows.map((row) => ({
